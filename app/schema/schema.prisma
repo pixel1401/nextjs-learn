@@ -1,0 +1,55 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+}
+
+model Invoice {
+  id         String    @default(cuid()) @id
+  amount     Int
+  status     String?
+  date       DateTime  @default(now()) @map(name: "created_at")
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  customerId String?
+
+  @@map(name: "invoices")
+}
+
+model User {
+  id        String   @default(cuid()) @id
+  name      String?
+  email     String?  @unique
+  password  String?
+  createdAt DateTime @default(now()) @map(name: "created_at")
+  updatedAt DateTime @updatedAt @map(name: "updated_at")
+
+  @@map(name: "users")
+}
+
+model Customer {
+  id        String    @default(cuid()) @id
+  name      String?
+  email     String?   @unique
+  image_url String?
+  createdAt DateTime  @default(now()) @map(name: "created_at")
+  updatedAt DateTime  @updatedAt @map(name: "updated_at")
+  invoices  Invoice[] // Обратное отношение
+
+  @@map(name: "customers")
+}
+
+model Revenue {
+  id        String   @id @default(cuid())
+  month     String   @unique
+  revenue   Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map(name: "revenue")
+}
