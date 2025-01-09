@@ -6,7 +6,9 @@
     "start": "next start",
     "setup": "npx prisma migrate dev --name init --schema ./app/schema/schema.prisma",
     "postsetup": "npx prisma generate  --schema ./app/schema/schema.prisma",
-    "studio": "npx prisma studio --schema ./app/schema/schema.prisma"
+    "studio": "npx prisma studio --schema ./app/schema/schema.prisma",
+    "db": "docker-compose up -d",
+    "lint": "next lint --fix"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -35,6 +37,8 @@
     "@types/node": "22.10.1",
     "@types/react": "19.0.0",
     "@types/react-dom": "19.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.4",
     "prisma": "^6.1.0"
   }
 }

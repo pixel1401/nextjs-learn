@@ -1,14 +1,7 @@
-import { sql } from '@vercel/postgres';
+import {sql} from '@vercel/postgres';
 import prisma from '@/lib/prisma';
-import {
-  CustomerField,
-  CustomersTableType,
-  InvoiceForm,
-  InvoicesTable,
-  LatestInvoiceRaw,
-  Revenue,
-} from './definitions';
-import { formatCurrency } from './utils';
+import {CustomersTableType,} from './definitions';
+import {formatCurrency} from './utils';
 
 export async function fetchRevenue() {
   try {
@@ -45,18 +38,16 @@ export async function fetchLatestInvoices() {
     });
 
     // Приводим данные к нужному формату
-    const latestInvoices = invoices.map((invoice) => ({
+    return invoices.map((invoice) => ({
       id: invoice.id,
       amount: formatCurrency(invoice.amount),
       name: invoice.customer.name,
       email: invoice.customer.email,
       image_url: invoice.customer.image_url,
     }));
-
-    return latestInvoices;
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch the latest invoices.');
+    return {message: 'Failed to fetch revenue data.'};
   } finally {
     await prisma.$disconnect();
   }
@@ -220,56 +211,63 @@ export async function fetchInvoicesPages(query) {
     });
 
     // Вычисляем общее количество страниц
-    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
-    return totalPages;
+    return Math.ceil(totalCount / ITEMS_PER_PAGE);
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch total number of invoices.');
+    return {message: 'Failed to fetch invoices.'};
   } finally {
     await prisma.$disconnect();
   }
 }
 
-export async function fetchInvoiceById(id: string) {
+export async function fetchInvoiceById(id) {
   try {
-    const data = await sql<InvoiceForm>`
-      SELECT
-        invoices.id,
-        invoices.customer_id,
-        invoices.amount,
-        invoices.status
-      FROM invoices
-      WHERE invoices.id = ${id};
-    `;
+    const invoice = await prisma.invoice.findUnique({
+      where: {
+        id: id,
+      },
+      select: {
+        id: true,
+        customerId: true,
+        amount: true,
+        status: true,
+      },
+    });
 
-    const invoice = data.rows.map((invoice) => ({
+    if (!invoice) {
+      return null;
+    }
+
+    // Преобразуем сумму из центов в доллары
+    return {
       ...invoice,
-      // Convert amount from cents to dollars
       amount: invoice.amount / 100,
-    }));
-
-    return invoice[0];
+    };
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch invoice.');
+    return { message: 'Database Error: Failed to Get by Id Invoice' };
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 export async function fetchCustomers() {
   try {
-    const data = await sql<CustomerField>`
-      SELECT
-        id,
-        name
-      FROM customers
-      ORDER BY name ASC
-    `;
-
-    const customers = data.rows;
-    return customers;
+    // Получаем список клиентов, сортируя их по имени
+    return await prisma.customer.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: 'asc', // Сортировка по имени в порядке возрастания
+      },
+    });
   } catch (err) {
     console.error('Database Error:', err);
-    throw new Error('Failed to fetch all customers.');
+    return {message: 'Failed to fetch customers.'};
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
